@@ -34,7 +34,9 @@ namespace Avrin.Chat
         private const float BaseInputTop = 182f;
 
         private float _keyboardHeight;
+        private float _composerExtraHeight;
         private bool _isWaiting;
+        private Coroutine _nativeRectSyncRoutine;
 
         public event Action<string> MessageSubmitted;
 
@@ -82,6 +84,11 @@ namespace Avrin.Chat
         private void OnDestroy()
         {
             MobileInput.OnKeyboardAction -= OnKeyboardAction;
+            if (_nativeRectSyncRoutine != null)
+            {
+                StopCoroutine(_nativeRectSyncRoutine);
+            }
+
             if (mobileInput != null)
             {
                 mobileInput.OnReturnPressed -= SendCurrentMessage;
@@ -159,7 +166,14 @@ namespace Avrin.Chat
             sendButton.interactable = !_isWaiting && !string.IsNullOrWhiteSpace(value);
             var preferred = inputField.textComponent.GetPreferredValues(value, inputField.textViewport.rect.width, 0f).y;
             var extraHeight = Mathf.Clamp(preferred - 52f, 0f, 110f);
+            var heightChanged = !Mathf.Approximately(_composerExtraHeight, extraHeight);
+            _composerExtraHeight = extraHeight;
             ApplyInsets(extraHeight);
+
+            if (heightChanged && _keyboardHeight > 0f)
+            {
+                RequestNativeInputRectSync();
+            }
         }
 
         private void OnKeyboardAction(bool isVisible, int nativeHeight)
@@ -182,7 +196,57 @@ namespace Avrin.Chat
             }
 
             RefreshComposer(inputField.text);
+            RequestNativeInputRectSync();
             ScrollToBottom();
+        }
+
+        private void RequestNativeInputRectSync()
+        {
+#if (UNITY_ANDROID || UNITY_IOS) && !UNITY_EDITOR
+            if (!isActiveAndEnabled || mobileInput == null || inputField == null)
+            {
+                return;
+            }
+
+            if (_nativeRectSyncRoutine != null)
+            {
+                StopCoroutine(_nativeRectSyncRoutine);
+            }
+
+            _nativeRectSyncRoutine = StartCoroutine(SyncNativeInputRect());
+#endif
+        }
+
+        private IEnumerator SyncNativeInputRect()
+        {
+            // UMI renders the editable text as a native view above Unity's canvas.
+            // Resend its rect after both the Unity layout and the OS keyboard animation settle.
+            yield return new WaitForEndOfFrame();
+            ForceNativeInputRectUpdate();
+            yield return new WaitForSecondsRealtime(0.08f);
+            ForceNativeInputRectUpdate();
+            yield return new WaitForSecondsRealtime(0.12f);
+            ForceNativeInputRectUpdate();
+            _nativeRectSyncRoutine = null;
+        }
+
+        private void ForceNativeInputRectUpdate()
+        {
+            if (mobileInput == null || inputField == null || inputField.textComponent == null)
+            {
+                return;
+            }
+
+            Canvas.ForceUpdateCanvases();
+            if (inputDock != null)
+            {
+                LayoutRebuilder.ForceRebuildLayoutImmediate(inputDock);
+            }
+
+            // SetRectNative caches its last rect. Sending a different valid rect first
+            // guarantees that the final text rect is forwarded to the native control.
+            mobileInput.SetRectNative(inputField.transform as RectTransform);
+            mobileInput.SetRectNative(inputField.textComponent.rectTransform);
         }
 
         private void ApplyInsets(float extraHeight)

@@ -82,7 +82,7 @@ namespace Avrin.Chat.Editor
             row.padding = new RectOffset(28, 28, 7, 7);
             row.spacing = 0f;
             row.childAlignment = isUser ? TextAnchor.UpperRight : TextAnchor.UpperLeft;
-            row.childControlWidth = false;
+            row.childControlWidth = true;
             row.childControlHeight = true;
             row.childForceExpandWidth = false;
             row.childForceExpandHeight = false;
@@ -98,6 +98,7 @@ namespace Avrin.Chat.Editor
                 : new Vector4(30f, 30f, 30f, 8f);
             var bubbleLayout = bubble.AddComponent<LayoutElement>();
             bubbleLayout.preferredWidth = 800f;
+            bubbleLayout.minWidth = 0f;
             bubbleLayout.flexibleWidth = 0f;
             var bubbleGroup = bubble.AddComponent<VerticalLayoutGroup>();
             bubbleGroup.padding = new RectOffset(28, 28, 20, 22);
@@ -121,7 +122,7 @@ namespace Avrin.Chat.Editor
             body.gameObject.AddComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
 
             var view = root.AddComponent<ChatMessageView>();
-            view.Setup(bubbleImage, role, body, row, isUser);
+            view.Setup(bubbleImage, role, body, row, bubbleLayout, isUser);
 
             var prefab = PrefabUtility.SaveAsPrefabAsset(root, path);
             Object.DestroyImmediate(root);
