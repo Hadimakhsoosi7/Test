@@ -1,5 +1,12 @@
 {
   "dependencies": {
+    "com.mopsicus.umi": {
+      "version": "https://github.com/mopsicus/umi.git",
+      "depth": 0,
+      "source": "git",
+      "dependencies": {},
+      "hash": "6ef7cfa32d7fa402463610cc110b74bfc6464cc5"
+    },
     "com.unity.2d.animation": {
       "version": "13.0.2",
       "depth": 0,
