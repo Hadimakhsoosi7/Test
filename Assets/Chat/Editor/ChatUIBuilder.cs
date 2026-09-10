@@ -156,13 +156,15 @@ namespace Avrin.Chat.Editor
 
             BuildHeader(safeArea.transform);
             var scroll = BuildConversation(safeArea.transform, out var conversationRect, out var content, out var typing);
-            var composer = BuildComposer(safeArea.transform, out var input, out var mobileInput, out var sendButton);
+            var composer = BuildComposer(safeArea.transform, out var input, out var mobileInput, out var sendButton,
+                out var modelDropdown);
 
             var controllerObject = new GameObject("Chat Controller", typeof(RectTransform));
             controllerObject.transform.SetParent(safeArea.transform, false);
             var controller = controllerObject.AddComponent<ChatController>();
             controller.Setup(scroll, conversationRect, content, userPrefab, assistantPrefab, typing,
-                input, mobileInput, sendButton, composer, (RectTransform)canvasObject.transform);
+                input, mobileInput, sendButton, composer, (RectTransform)canvasObject.transform,
+                modelDropdown);
 
             var eventSystem = new GameObject("EventSystem");
             eventSystem.AddComponent<EventSystem>();
@@ -262,7 +264,8 @@ namespace Avrin.Chat.Editor
         }
 
         private static RectTransform BuildComposer(Transform parent, out TMP_InputField input,
-            out MobileInputField mobileInput, out Button sendButton)
+            out MobileInputField mobileInput, out Button sendButton,
+            out ModelDropdown modelDropdown)
         {
             var dock = CreatePanel("Composer", parent, Rgb(19, 24, 37));
             SetAnchors(dock.rectTransform, Vector2.zero, new Vector2(1f, 0f),
@@ -288,7 +291,7 @@ namespace Avrin.Chat.Editor
 
             var fieldObject = CreatePanel("Message Input", dock.transform, Rgb(27, 33, 48));
             SetAnchors(fieldObject.rectTransform, Vector2.zero, Vector2.one,
-                new Vector2(172f, 18f), new Vector2(-18f, -18f));
+                new Vector2(172f, 18f), new Vector2(-294f, -18f));
             fieldObject.gameObject.AddComponent<CornerRounder>().radiiSerialized = Vector4.one * 28f;
 
             var textArea = UiObject("Text Area", fieldObject.transform);
@@ -324,6 +327,13 @@ namespace Avrin.Chat.Editor
             mobileInput.ReturnKey = MobileInputField.ReturnKeyType.Send;
             mobileInput.KeyboardLanguage = "fa";
             mobileInput.IsManualHideControl = true;
+
+            var selector = CreatePanel("Model Dropdown", dock.transform, Rgb(27, 33, 48));
+            SetAnchors(selector.rectTransform, new Vector2(1f, 0f), Vector2.one,
+                new Vector2(-276f, 18f), new Vector2(-18f, -18f));
+            selector.gameObject.AddComponent<CornerRounder>().radiiSerialized = Vector4.one * 28f;
+            selector.gameObject.AddComponent<Button>().targetGraphic = selector;
+            modelDropdown = selector.gameObject.AddComponent<ModelDropdown>();
             return dock.rectTransform;
         }
 

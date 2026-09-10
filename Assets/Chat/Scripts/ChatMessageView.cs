@@ -1,5 +1,6 @@
 using DA_Assets.CR;
 using RTLTMPro;
+using System.Text.RegularExpressions;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -21,6 +22,9 @@ namespace Avrin.Chat
         private static readonly Color AssistantBubble = new Color32(31, 38, 53, 255);
         private static readonly Color PrimaryText = new Color32(244, 246, 252, 255);
         private static readonly Color MutedText = new Color32(167, 176, 199, 255);
+        private static readonly Regex MarkdownBold = new Regex(
+            @"\*\*([^\r\n]+?)\*\*",
+            RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
         public void Setup(Image bubbleImage, RTLTextMeshPro role, RTLTextMeshPro body,
             HorizontalLayoutGroup layout, LayoutElement layoutElement, bool isUser)
@@ -38,9 +42,19 @@ namespace Avrin.Chat
         public void Bind(string message)
         {
             ApplyStyle();
-            messageText.text = message;
+            messageText.text = ConvertMarkdownToRichText(message);
             RefreshBubbleWidth();
             LayoutRebuilder.ForceRebuildLayoutImmediate((RectTransform)transform);
+        }
+
+        private static string ConvertMarkdownToRichText(string message)
+        {
+            if (string.IsNullOrEmpty(message))
+            {
+                return string.Empty;
+            }
+
+            return MarkdownBold.Replace(message, "<b>$1</b>");
         }
 
         private void OnEnable()
@@ -129,6 +143,7 @@ namespace Avrin.Chat
                 messageText.color = PrimaryText;
                 messageText.alignment = TextAlignmentOptions.Right;
                 messageText.Farsi = true;
+                messageText.richText = true;
             }
         }
     }

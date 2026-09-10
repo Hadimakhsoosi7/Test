@@ -1,6 +1,5 @@
 using System;
 using System.Collections;
-using RTLTMPro;
 using TMPro;
 using UMI;
 using UnityEngine;
@@ -26,6 +25,9 @@ namespace Avrin.Chat
         [SerializeField] private RectTransform inputDock;
         [SerializeField] private RectTransform canvasRect;
 
+        [Header("Model Selector")]
+        [SerializeField] private ModelDropdown modelDropdown;
+
         [Header("Server")]
         [Tooltip("FastAPI chat endpoint.")]
         [SerializeField] private string apiUrl = "http://2.186.114.140:8000/api/chat";
@@ -44,6 +46,15 @@ namespace Avrin.Chat
         private float _composerExtraHeight;
         private bool _isWaiting;
         private Coroutine _nativeRectSyncRoutine;
+        private int _selectedModelIndex;
+
+        private const string ModelPreferenceKey = "Avrin.Chat.SelectedModel";
+
+        private static readonly string[] ModelIds =
+        {
+            "qwen2.5:7b",
+            "gemma4:12b-it-q4_K_M"
+        };
 
         public event Action<string> MessageSubmitted;
 
@@ -58,7 +69,8 @@ namespace Avrin.Chat
             MobileInputField nativeField,
             Button send,
             RectTransform dock,
-            RectTransform canvas)
+            RectTransform canvas,
+            ModelDropdown dropdown)
         {
             scrollRect = list;
             conversationRect = listRect;
@@ -71,6 +83,7 @@ namespace Avrin.Chat
             sendButton = send;
             inputDock = dock;
             canvasRect = canvas;
+            modelDropdown = dropdown;
         }
 
         private void Start()
@@ -80,6 +93,7 @@ namespace Avrin.Chat
             mobileInput.OnReturnPressed += SendCurrentMessage;
             MobileInput.OnKeyboardAction += OnKeyboardAction;
             typingIndicator.SetActive(false);
+            SetupModelSelector();
             RefreshComposer(string.Empty);
 
             if (showWelcomeMessage)
@@ -99,6 +113,11 @@ namespace Avrin.Chat
             if (mobileInput != null)
             {
                 mobileInput.OnReturnPressed -= SendCurrentMessage;
+            }
+
+            if (modelDropdown != null)
+            {
+                modelDropdown.ValueChanged -= SelectModel;
             }
         }
 
@@ -127,6 +146,7 @@ namespace Avrin.Chat
         {
             _isWaiting = false;
             typingIndicator.SetActive(false);
+            modelDropdown?.SetInteractable(true);
             AddMessage(assistantMessagePrefab, message);
         }
 
@@ -139,6 +159,7 @@ namespace Avrin.Chat
                 typingIndicator.transform.SetAsLastSibling();
             }
             sendButton.interactable = !waiting && !string.IsNullOrWhiteSpace(inputField.text);
+            modelDropdown?.SetInteractable(!waiting);
             ScrollToBottom();
         }
 
@@ -159,7 +180,8 @@ namespace Avrin.Chat
             var payload = new ChatRequest
             {
                 userId = string.IsNullOrWhiteSpace(userId) ? SystemInfo.deviceUniqueIdentifier : userId.Trim(),
-                message = message
+                message = message,
+                model = ModelIds[_selectedModelIndex]
             };
             var json = JsonUtility.ToJson(payload);
 
@@ -223,11 +245,41 @@ namespace Avrin.Chat
             }
         }
 
+        private void SetupModelSelector()
+        {
+            if (modelDropdown == null)
+            {
+                var selector = new GameObject("Model Dropdown", typeof(RectTransform), typeof(CanvasRenderer),
+                    typeof(Image), typeof(Button), typeof(ModelDropdown));
+                selector.layer = LayerMask.NameToLayer("UI");
+                selector.transform.SetParent(inputDock, false);
+                var selectorRect = (RectTransform)selector.transform;
+                selectorRect.anchorMin = new Vector2(1f, 0f);
+                selectorRect.anchorMax = Vector2.one;
+                selectorRect.offsetMin = new Vector2(-276f, 18f);
+                selectorRect.offsetMax = new Vector2(-18f, -18f);
+                selector.AddComponent<DA_Assets.CR.CornerRounder>().radiiSerialized = Vector4.one * 28f;
+                modelDropdown = selector.GetComponent<ModelDropdown>();
+            }
+
+            _selectedModelIndex = Mathf.Clamp(PlayerPrefs.GetInt(ModelPreferenceKey, 0), 0, ModelIds.Length - 1);
+            modelDropdown.Initialize(inputField.textComponent.font, _selectedModelIndex);
+            modelDropdown.ValueChanged += SelectModel;
+        }
+
+        private void SelectModel(int index)
+        {
+            _selectedModelIndex = Mathf.Clamp(index, 0, ModelIds.Length - 1);
+            PlayerPrefs.SetInt(ModelPreferenceKey, _selectedModelIndex);
+            PlayerPrefs.Save();
+        }
+
         [Serializable]
         private sealed class ChatRequest
         {
             public string userId;
             public string message;
+            public string model;
         }
 
         [Serializable]
