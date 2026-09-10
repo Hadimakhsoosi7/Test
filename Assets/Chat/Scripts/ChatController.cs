@@ -4,6 +4,7 @@ using RTLTMPro;
 using TMPro;
 using UMI;
 using UnityEngine;
+using UnityEngine.Networking;
 using UnityEngine.UI;
 
 namespace Avrin.Chat
@@ -25,9 +26,15 @@ namespace Avrin.Chat
         [SerializeField] private RectTransform inputDock;
         [SerializeField] private RectTransform canvasRect;
 
-        [Header("Prototype")]
+        [Header("Server")]
+        [Tooltip("FastAPI chat endpoint.")]
+        [SerializeField] private string apiUrl = "http://2.186.114.140:8000/api/chat";
+        [SerializeField] private string userId = "unity-trainee";
+        [Min(1)]
+        [SerializeField] private int requestTimeoutSeconds = 120;
+
+        [Header("Conversation Start")]
         [SerializeField] private bool showWelcomeMessage = true;
-        [SerializeField] private bool useMockReplies = true;
 
         private const float BaseConversationBottom = 210f;
         private const float BaseInputBottom = 18f;
@@ -77,7 +84,7 @@ namespace Avrin.Chat
 
             if (showWelcomeMessage)
             {
-                AddAssistantMessage("سلام! من دستیار هوشمند شما هستم. فعلاً رابط چت آماده است و در مرحله‌ی بعد می‌توانیم من را به مدل روی سرور شما متصل کنیم.");
+                AddAssistantMessage("سلام! من دستیار هوشمند شما هستم. سؤال خود را بپرسید.");
             }
         }
 
@@ -113,11 +120,7 @@ namespace Avrin.Chat
             inputField.SetTextWithoutNotify(string.Empty);
             RefreshComposer(string.Empty);
             MessageSubmitted?.Invoke(message);
-
-            if (useMockReplies)
-            {
-                StartCoroutine(ShowMockReply());
-            }
+            StartCoroutine(SendToServer(message));
         }
 
         public void AddAssistantMessage(string message)
@@ -149,11 +152,94 @@ namespace Avrin.Chat
             ScrollToBottom();
         }
 
-        private IEnumerator ShowMockReply()
+        private IEnumerator SendToServer(string message)
         {
             SetWaiting(true);
-            yield return new WaitForSeconds(0.65f);
-            AddAssistantMessage("پیام شما دریافت شد. این پاسخ فعلاً آزمایشی است؛ API سرور بعداً از همین نقطه جایگزین می‌شود.");
+
+            var payload = new ChatRequest
+            {
+                userId = string.IsNullOrWhiteSpace(userId) ? SystemInfo.deviceUniqueIdentifier : userId.Trim(),
+                message = message
+            };
+            var json = JsonUtility.ToJson(payload);
+
+            using (var request = new UnityWebRequest(apiUrl.Trim(), UnityWebRequest.kHttpVerbPOST))
+            {
+                request.uploadHandler = new UploadHandlerRaw(System.Text.Encoding.UTF8.GetBytes(json));
+                request.downloadHandler = new DownloadHandlerBuffer();
+                request.SetRequestHeader("Content-Type", "application/json; charset=utf-8");
+                request.timeout = Mathf.Max(1, requestTimeoutSeconds);
+
+                yield return request.SendWebRequest();
+
+                if (request.result != UnityWebRequest.Result.Success)
+                {
+                    var detail = TryReadErrorDetail(request.downloadHandler.text);
+                    Debug.LogError($"Chat API failed ({request.responseCode}): {request.error}\n{request.downloadHandler.text}");
+                    AddAssistantMessage(string.IsNullOrEmpty(detail)
+                        ? "ارتباط با سرور برقرار نشد. لطفاً آدرس سرور و اتصال شبکه را بررسی کنید."
+                        : $"خطای سرور: {detail}");
+                    yield break;
+                }
+
+                ChatResponse response;
+                try
+                {
+                    response = JsonUtility.FromJson<ChatResponse>(request.downloadHandler.text);
+                }
+                catch (Exception exception)
+                {
+                    Debug.LogError($"Invalid Chat API response: {exception.Message}\n{request.downloadHandler.text}");
+                    AddAssistantMessage("پاسخ نامعتبر از سرور دریافت شد.");
+                    yield break;
+                }
+
+                if (response == null || string.IsNullOrWhiteSpace(response.reply))
+                {
+                    Debug.LogError($"Chat API response has no reply: {request.downloadHandler.text}");
+                    AddAssistantMessage("سرور پاسخ خالی برگرداند.");
+                    yield break;
+                }
+
+                AddAssistantMessage(response.reply.Trim());
+            }
+        }
+
+        private static string TryReadErrorDetail(string json)
+        {
+            if (string.IsNullOrWhiteSpace(json))
+            {
+                return string.Empty;
+            }
+
+            try
+            {
+                var error = JsonUtility.FromJson<ChatErrorResponse>(json);
+                return error?.detail ?? string.Empty;
+            }
+            catch
+            {
+                return string.Empty;
+            }
+        }
+
+        [Serializable]
+        private sealed class ChatRequest
+        {
+            public string userId;
+            public string message;
+        }
+
+        [Serializable]
+        private sealed class ChatResponse
+        {
+            public string reply = string.Empty;
+        }
+
+        [Serializable]
+        private sealed class ChatErrorResponse
+        {
+            public string detail = string.Empty;
         }
 
         private void OnInputChanged(string value)

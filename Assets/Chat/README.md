@@ -4,10 +4,14 @@ The `Main` scene contains a mobile-first Persian chat UI with separate user and 
 
 ## Server integration
 
-- Subscribe to `ChatController.MessageSubmitted` and send the received text to your server.
-- Disable `Use Mock Replies` on `Chat Controller` when the real service is connected.
-- Call `SetWaiting(true)` while the request is running.
-- Call `AddAssistantMessage(responseText)` when the response arrives.
+- `ChatController` sends `POST /api/chat` with JSON shaped as
+  `{ "userId": "unity-trainee", "message": "..." }` and displays the returned
+  `{ "reply": "..." }` value.
+- The configured server endpoint is `http://2.186.114.140:8000/api/chat`.
+- Authentication is intentionally not required yet; requests use the temporary
+  `unity-trainee` user id.
+- The current Android build explicitly includes Internet permission and allows the
+  server's plain HTTP endpoint. Replace it with HTTPS before production release.
 
 ## Regenerating the UI
 

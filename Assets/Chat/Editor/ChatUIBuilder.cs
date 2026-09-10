@@ -111,14 +111,15 @@ namespace Avrin.Chat.Editor
             var bubbleFitter = bubble.AddComponent<ContentSizeFitter>();
             bubbleFitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
 
-            var role = CreateText("Role", bubble.transform, isUser ? "شما" : "دستیار", 24f, _semiboldFont,
+            var role = CreateText("Role", bubble.transform, isUser ? "شما" : "دستیار", 30f, _semiboldFont,
                 isUser ? Rgb(225, 229, 255) : Rgb(167, 176, 199));
             role.alignment = isUser ? TextAlignmentOptions.Right : TextAlignmentOptions.Left;
-            role.gameObject.AddComponent<LayoutElement>().preferredHeight = 34f;
+            role.gameObject.AddComponent<LayoutElement>().preferredHeight = 42f;
 
-            var body = CreateText("Message", bubble.transform, "متن پیام", 31f, _regularFont, Rgb(244, 246, 252));
+            var body = CreateText("Message", bubble.transform, "متن پیام", 44f, _regularFont, Rgb(244, 246, 252));
             body.alignment = TextAlignmentOptions.Right;
             body.enableWordWrapping = true;
+            body.lineSpacing = 8f;
             body.gameObject.AddComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
 
             var view = root.AddComponent<ChatMessageView>();
@@ -181,12 +182,12 @@ namespace Avrin.Chat.Editor
             spark.alignment = TextAlignmentOptions.Center;
             Stretch(spark.rectTransform);
 
-            var title = CreateText("Title", header.transform, "دستیار هوشمند", 42f, _semiboldFont, Rgb(246, 247, 252));
+            var title = CreateText("Title", header.transform, "دستیار هوشمند", 48f, _semiboldFont, Rgb(246, 247, 252));
             title.alignment = TextAlignmentOptions.Right;
             SetAnchors(title.rectTransform, new Vector2(0f, 0.5f), new Vector2(1f, 1f),
                 new Vector2(46f, -8f), new Vector2(-172f, -30f));
 
-            var subtitle = CreateText("Subtitle", header.transform, "آماده برای اتصال به مدل اختصاصی شما", 24f, _regularFont, Rgb(145, 155, 181));
+            var subtitle = CreateText("Subtitle", header.transform, "آماده برای اتصال به مدل اختصاصی شما", 30f, _regularFont, Rgb(145, 155, 181));
             subtitle.alignment = TextAlignmentOptions.Right;
             SetAnchors(subtitle.rectTransform, new Vector2(0f, 0f), new Vector2(1f, 0.5f),
                 new Vector2(46f, 28f), new Vector2(-172f, 4f));
@@ -254,7 +255,7 @@ namespace Avrin.Chat.Editor
             var element = bubble.gameObject.AddComponent<LayoutElement>();
             element.preferredWidth = 260f;
             element.preferredHeight = 72f;
-            var text = CreateText("Label", bubble.transform, "در حال نوشتن…", 24f, _regularFont, Rgb(167, 176, 199));
+            var text = CreateText("Label", bubble.transform, "در حال نوشتن…", 30f, _regularFont, Rgb(167, 176, 199));
             text.alignment = TextAlignmentOptions.Center;
             Stretch(text.rectTransform);
             return row;
@@ -281,7 +282,7 @@ namespace Avrin.Chat.Editor
             colors.pressedColor = new Color(0.84f, 0.84f, 0.9f, 1f);
             colors.disabledColor = new Color(0.5f, 0.5f, 0.55f, 0.45f);
             sendButton.colors = colors;
-            var sendLabel = CreateText("Label", send.transform, "ارسال", 27f, _semiboldFont, Color.white);
+            var sendLabel = CreateText("Label", send.transform, "ارسال", 32f, _semiboldFont, Color.white);
             sendLabel.alignment = TextAlignmentOptions.Center;
             Stretch(sendLabel.rectTransform);
 
@@ -295,11 +296,11 @@ namespace Avrin.Chat.Editor
             SetAnchors(textAreaRect, Vector2.zero, Vector2.one, new Vector2(28f, 16f), new Vector2(-28f, -16f));
             textArea.AddComponent<RectMask2D>();
 
-            var placeholder = CreateText("Placeholder", textArea.transform, "پیام خود را بنویسید…", 30f, _regularFont, Rgb(111, 121, 145));
+            var placeholder = CreateText("Placeholder", textArea.transform, "پیام خود را بنویسید…", 42f, _regularFont, Rgb(111, 121, 145));
             placeholder.alignment = TextAlignmentOptions.Right;
             Stretch(placeholder.rectTransform);
 
-            var inputText = CreateText("Text", textArea.transform, string.Empty, 30f, _regularFont, Rgb(242, 244, 250));
+            var inputText = CreateText("Text", textArea.transform, string.Empty, 42f, _regularFont, Rgb(242, 244, 250));
             inputText.alignment = TextAlignmentOptions.Right;
             inputText.enableWordWrapping = true;
             Stretch(inputText.rectTransform);
